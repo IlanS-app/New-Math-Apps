@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>תרגילי כפל</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('./DALL-E-2024-10-24-21-18-51-A-bright-and-cheerful-classroom-background-illustration-for-a-children.webp');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            padding: 20px;
+        }
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            position: relative;
+        }
+        .feedback { color: red; }
+        .correct { color: green; }
+        .table-container {
+            margin-left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+        }
+        .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table-container th, .table-container td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        .level-selection {
+            margin-bottom: 20px;
+        }
+        .score {
+            text-align: right;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .footer {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            color: black;
+            background: rgba(255, 255, 255, 0.75);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="content">
+            <h1>תרגילי כפל</h1>
+            <div class="level-selection">
+                <label for="level">Choose a level:</label>
+                <select id="level">
+                    <option value="1">Level 1</option>
+                    <option value="2">Level 2</option>
+                    <option value="3">Level 3</option>
+                    <option value="4">Level 4</option>
+                </select>
+                <button onclick="startExercises()">Start</button>
+            </div>
+            <div id="exercise"></div>
+            <div class="feedback" id="feedback"></div>
+        </div>
+        <div class="table-container">
+            
+            <div class="score" style="float: right;">ציון: <span id="score">0/0 (0%)</span></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>מספר תרגיל</th>
+                        <th>תרגיל</th>
+                        <th>תשובה נכונה</th>
+                        <th>התשובה שלך</th>
+                        <th>נכון?</th>
+                    </tr>
+                </thead>
+                <tbody id="results"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="footer">כל הזכויות שמורות לאילן שערי</div>
+    <script>
+        let currentExercise = 0;
+        let score = 0;
+        let total = 0;
+        const exercises = [];
+        const multipleChoiceQuestions = [
+            {
+                question: 'הכפלת מספר זוגי ב 5 יכולה להתקבל על ידי:',
+                answers: ['חלוקת המספר ב 2 והכפלת התוצאה ב 10', 'הכפלת המספר ב 2 וחלוקת התוצאה ב 5', 'חיסור 2 מהמספר והכפלתו ב 5', 'שום אפשרות'],
+                correct: 0
+            },
+            {
+                question: 'הכפלת מספר ב 9 יכולה להתקבל על ידי:',
+                answers: ['הכפלת המספר ב 10 והחסרת המספר', 'הכפלת המספר ב 8 והוספת המספר', 'חיבור המספר ל-9', 'הכפלת המספר ב 5 ואז ב 2'],
+                correct: 0
+            },
+            {
+                question: 'הכפלת מספר זוגי ב 5 יכולה להתקבל על ידי:',
+                answers: ['חלוקת המספר ב 2 והכפלת התוצאה ב 10', 'הכפלת המספר ב 2 וחלוקת התוצאה ב 5', 'חיסור 2 מהמספר והכפלתו ב 5', 'שום אפשרות'],
+                correct: 0
+            },
+            {
+                question: 'תוצאת הכפל של מספר אי זוגי ומספר זוגי היא:',
+                answers: ['מספר זוגי', 'מספר אי זוגי', 'שניהם', 'מסתיים ב-5'],
+                correct: 0
+            },
+            {
+                question: 'תוצאת הכפל של כל מספר באפס היא:',
+                answers: ['אפס', 'המספר', 'שניהם', 'אף אחד'],
+                correct: 0
+            },
+            {
+                question: 'כפל ב-5, מהי התוצאה של מספר זוגי?',
+                answers: ['מסתיים ב-0', 'מסתיים ב-5', 'מספר אי זוגי', 'אותו מספר'],
+                correct: 0
+            },
+            {
+                question: 'כפל ב-5, מהי התוצאה של מספר אי זוגי?',
+                answers: ['מסתיים ב-5', 'מסתיים ב-0', 'מספר זוגי', 'אותו מספר'],
+                correct: 0
+            },
+            {
+                question: 'כפל של כל מספר ב-1 נותן?',
+                answers: ['המספר עצמו', 'אפס', 'אחד', 'כפול המספר'],
+                correct: 0
+            }
+        ];
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateExercises(level) {
+            const usedQuestions = new Set();
+            exercises.length = 0; // Reset exercises
+            while (exercises.length < 8) {
+                let a, b;
+                switch (level) {
+                    case '1':
+                        a = getRandomInt(1, 4);
+                        b = getRandomInt(1, 10);
+                        break;
+                    case '2':
+                        a = getRandomInt(5, 7);
+                        b = getRandomInt(1, 10);
+                        break;
+                    case '3':
+                        a = getRandomInt(8, 10);
+                        b = getRandomInt(1, 10);
+                        break;
+                    case '4':
+                        if (Math.random() > 0.5) {
+                            a = getRandomInt(6, 9);
+                            b = getRandomInt(6, 9);
+                        } else {
+                            a = getRandomInt(1, 10);
+                            b = getRandomInt(1, 10);
+                        }
+                        break;
+                    default:
+                        a = b = 1;
+                }
+                const question = `${a} x ${b}`;
+                if (!usedQuestions.has(question)) {
+                    exercises.push({ question: `${question} = `, answer: a * b });
+                    usedQuestions.add(question);
+                }
+            }
+
+            // Add two multiple-choice questions
+            const selectedQuestions = [];
+            while (selectedQuestions.length < 2) {
+                const randomIndex = getRandomInt(0, multipleChoiceQuestions.length - 1);
+                if (!selectedQuestions.includes(randomIndex)) {
+                    selectedQuestions.push(randomIndex);
+                }
+            }
+            selectedQuestions.forEach(index => {
+                const questionObj = multipleChoiceQuestions[index];
+                const shuffledAnswers = [...questionObj.answers];
+                shuffleArray(shuffledAnswers);
+                exercises.push({
+                    question: questionObj.question,
+                    answers: shuffledAnswers,
+                    correct: shuffledAnswers.indexOf(questionObj.answers[questionObj.correct])
+                });
+            });
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function nextExercise() {
+            const exerciseDiv = document.getElementById('exercise');
+            const feedbackDiv = document.getElementById('feedback');
+            feedbackDiv.innerHTML = '';
+            exerciseDiv.innerHTML = '';
+
+            if (currentExercise < 8) { // Ensure only 8 exercises
+                const exercise = exercises[currentExercise];
+                exerciseDiv.innerHTML = `<p><strong>Exercise ${currentExercise + 1}:</strong> ${exercise.question}<input type="text" id="answer" onkeydown="if(event.key === 'Enter') checkAnswer(${exercise.answer})"><button onclick="checkAnswer(${exercise.answer})">Submit</button></p>`;
+            } else if (currentExercise < 10) { // Multiple-choice questions
+                const exercise = exercises[currentExercise];
+                exerciseDiv.innerHTML = `<p><strong>Exercise ${currentExercise + 1}:</strong> ${exercise.question}</p>`;
+                exercise.answers.forEach((answer, index) => {
+                    exerciseDiv.innerHTML += `<p>${index + 1}. ${answer}</p>`;
+                });
+                exerciseDiv.innerHTML += `<input type="text" id="answer" onkeydown="if(event.key === 'Enter') checkMultipleChoiceAnswer(${exercise.correct})"><button onclick="checkMultipleChoiceAnswer(${exercise.correct})">Submit</button>`;
+            } else {
+                exerciseDiv.innerHTML = '<p>All done!</p>';
+            }
+            if (currentExercise < 10) document.getElementById('answer').focus();
+            currentExercise++;
+        }
+
+        function updateScore() {
+            const percentage = total === 0 ? 0 : Math.round((score / total) * 100);
+            document.getElementById('score').textContent = `${score}/${total} (${percentage}%)`;
+        }
+
+        function checkAnswer(correctAnswer) {
+            const answerInput = document.getElementById('answer');
+            if (answerInput.disabled || answerInput.value.trim() === '') return;
+            answerInput.disabled = true;
+            const answer = answerInput.value;
+            const feedbackDiv = document.getElementById('feedback');
+            const resultsTbody = document.getElementById('results');
+            let isCorrect = false;
+
+            total++;
+            if (answer == correctAnswer) {
+                feedbackDiv.innerHTML = '<p class="correct">!נכון</p>';
+                score++;
+                isCorrect = true;
+            } else {
+                feedbackDiv.innerHTML = `<p class="feedback">שגוי התשובה הנכונה היא ${correctAnswer}.</p>`;
+            }
+
+            updateScore();
+            const currentQuestionText = exercises[currentExercise - 1]?.question;
+            resultsTbody.innerHTML += `
+                <tr>
+                    <td>${currentExercise}</td>
+                    <td>${currentQuestionText}</td>
+                    <td>${correctAnswer}</td>
+                    <td>${answer}</td>
+                    <td style="color: ${isCorrect ? 'green' : 'red'};">${isCorrect ? 'כן' : 'לא'}</td>
+                </tr>
+            `;
+
+            setTimeout(() => {
+                nextExercise();
+                document.getElementById('answer').focus();
+            }, 2000);
+        }
+
+        function checkMultipleChoiceAnswer(correctAnswer) {
+            const answerInput = document.getElementById('answer');
+            if (answerInput.disabled || answerInput.value.trim() === '') return;
+            answerInput.disabled = true;
+            const answer = answerInput.value;
+            const feedbackDiv = document.getElementById('feedback');
+            const resultsTbody = document.getElementById('results');
+            let isCorrect = false;
+
+            total++;
+            if (parseInt(answer) - 1 === correctAnswer) {
+                feedbackDiv.innerHTML = '<p class="correct">!נכון</p>';
+                score++;
+                isCorrect = true;
+            } else {
+                feedbackDiv.innerHTML = `<p class="feedback">שגוי התשובה הנכונה היא ${correctAnswer + 1}.</p>`;
+            }
+
+            updateScore();
+            const currentQuestionText = exercises[currentExercise - 1]?.question;
+            resultsTbody.innerHTML += `
+                <tr>
+                    <td>${currentExercise}</td>
+                    <td>${currentQuestionText}</td>
+                    <td>${exercises[currentExercise - 1].answers[correctAnswer]}</td>
+                    <td>${exercises[currentExercise - 1].answers[parseInt(answer) - 1] || 'N/A'}</td>
+                    <td style="color: ${isCorrect ? 'green' : 'red'};">${isCorrect ? 'כן' : 'לא'}</td>
+                </tr>
+            `;
+
+            setTimeout(() => {
+                nextExercise();
+                document.getElementById('answer').focus();
+            }, 2000);
+        }
+
+        function startExercises() {
+            const level = document.getElementById('level').value;
+            generateExercises(level);
+            currentExercise = 0;
+            score = 0;
+            total = 0;
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('feedback').innerHTML = '';
+            document.getElementById('exercise').innerHTML = '';
+            updateScore();
+            nextExercise();
+        }
+    </script>
+</body>
+</html>
